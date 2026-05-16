@@ -40,10 +40,20 @@ export default function LoginPage() {
 
     if (error) {
       setError(error.message);
+      setLoading(false);
     } else {
-      alert('Check your email for the confirmation link!');
+      // Automatically login after signup
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (loginError) {
+        setError(loginError.message);
+        setLoading(false);
+      } else {
+        router.push('/dashboard');
+      }
     }
-    setLoading(false);
   };
 
   return (
