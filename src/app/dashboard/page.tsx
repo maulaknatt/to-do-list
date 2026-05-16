@@ -13,25 +13,25 @@ export default function DashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  
+
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  
+
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState<Priority>('medium');
   const [newCatId, setNewCatId] = useState<string>('');
   const [newDeadline, setNewDeadline] = useState('');
-  
+
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState('#4461f2');
-  
+
   const router = useRouter();
 
   useEffect(() => {
@@ -55,6 +55,13 @@ export default function DashboardPage() {
       })));
     }
     setLoading(false);
+  };
+
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to logout?')) {
+      await supabase.auth.signOut();
+      router.push('/login');
+    }
   };
 
   const handleUpsertTask = async (e: React.FormEvent) => {
@@ -140,7 +147,7 @@ export default function DashboardPage() {
             <button className="flex w-full items-center gap-3 rounded-xl bg-primary/10 px-4 py-3 text-primary font-bold"><LayoutDashboard className="h-5 w-5" />Dashboard</button>
             <button onClick={() => { setEditingCat(null); setIsCatModalOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-zinc-500 hover:bg-white/5 hover:text-white"><Tag className="h-5 w-5" />Categories</button>
           </nav>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push('/login'))} className="flex items-center gap-3 rounded-xl px-4 py-3 text-zinc-500 hover:bg-rose-500/10 hover:text-rose-500"><LogOut className="h-5 w-5" />Logout</button>
+          <button onClick={handleLogout} className="flex items-center gap-3 rounded-xl px-4 py-3 text-zinc-500 hover:bg-rose-500/10 hover:text-rose-500"><LogOut className="h-5 w-5" />Logout</button>
         </div>
       </aside>
 
@@ -149,7 +156,7 @@ export default function DashboardPage() {
           <button className="text-primary"><LayoutDashboard className="h-6 w-6" /></button>
           <button onClick={() => setIsModalOpen(true)} className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white -mt-8"><Plus className="h-8 w-8" /></button>
           <button onClick={() => setIsCatModalOpen(true)} className="text-zinc-500"><Tag className="h-6 w-6" /></button>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push('/login'))} className="text-zinc-500"><LogOut className="h-6 w-6" /></button>
+          <button onClick={handleLogout} className="text-zinc-500"><LogOut className="h-6 w-6" /></button>
         </div>
       </nav>
 
@@ -208,11 +215,11 @@ export default function DashboardPage() {
 
           {/* Task List Section */}
           <div className="mb-8 flex items-center justify-between">
-             <h3 className="text-xl font-bold text-white">Task List</h3>
-             <div className="flex items-center gap-2">
-                <Search className="h-5 w-5 text-zinc-500" />
-                <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm text-white outline-none border-b border-white/5 focus:border-primary transition-colors" />
-             </div>
+            <h3 className="text-xl font-bold text-white">Task List</h3>
+            <div className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-zinc-500" />
+              <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm text-white outline-none border-b border-white/5 focus:border-primary transition-colors" />
+            </div>
           </div>
 
           <section className="space-y-4">
