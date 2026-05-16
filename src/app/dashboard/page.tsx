@@ -5,33 +5,33 @@ import { Task, Category, Priority } from '@/types';
 import TaskCard from '@/components/TaskCard';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Filter, LayoutDashboard, Settings, LogOut, CheckCircle, X, Loader2, Calendar, Tag, Trash2, Edit3, Menu, PieChart as PieIcon, BarChart3 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { Plus, Search, LayoutDashboard, LogOut, X, Loader2, Tag, Trash2, Edit3, PieChart as PieIcon, BarChart3, Bell, Sparkles } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-
+  
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
-
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-
+  
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState<Priority>('medium');
   const [newCatId, setNewCatId] = useState<string>('');
   const [newDeadline, setNewDeadline] = useState('');
-
+  
   const [newCatName, setNewCatName] = useState('');
-  const [newCatColor, setNewCatColor] = useState('#4461f2');
-
+  const [newCatColor, setNewCatColor] = useState('#c2ff4d');
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -58,10 +58,7 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
-    if (confirm('Are you sure you want to logout?')) {
-      await supabase.auth.signOut();
-      router.push('/login');
-    }
+    if (confirm('Exit from Flow?')) { await supabase.auth.signOut(); router.push('/login'); }
   };
 
   const handleUpsertTask = async (e: React.FormEvent) => {
@@ -110,7 +107,7 @@ export default function DashboardPage() {
   };
 
   const handleDeleteTask = async (id: number) => {
-    if (confirm('Delete?')) { const { error } = await supabase.from('tasks').delete().eq('id', id); if (!error) setTasks(prev => prev.filter(t => t.id !== id)); }
+    if (confirm('Remove this task?')) { const { error } = await supabase.from('tasks').delete().eq('id', id); if (!error) setTasks(prev => prev.filter(t => t.id !== id)); }
   };
 
   const filteredTasks = useMemo(() => {
@@ -122,157 +119,178 @@ export default function DashboardPage() {
     });
   }, [tasks, search, filterCat, filterStatus]);
 
-  // Chart Data
   const pieData = useMemo(() => [
-    { name: 'Completed', value: tasks.filter(t => t.status === 'completed').length, color: '#10b981' },
-    { name: 'Pending', value: tasks.filter(t => t.status !== 'completed').length, color: '#4461f2' }
+    { name: 'Done', value: tasks.filter(t => t.status === 'completed').length, color: '#c2ff4d' },
+    { name: 'To-do', value: tasks.filter(t => t.status !== 'completed').length, color: '#3f3f46' }
   ], [tasks]);
 
   const barData = useMemo(() => {
-    return categories.map(cat => ({
-      name: cat.name,
-      tasks: tasks.filter(t => t.category?.id === cat.id).length,
-      color: cat.color
-    }));
+    return categories.map(cat => ({ name: cat.name, tasks: tasks.filter(t => t.category?.id === cat.id).length, color: cat.color }));
   }, [categories, tasks]);
 
   if (!user || loading) return <div className="flex h-screen items-center justify-center bg-bg"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
-    <div className="flex min-h-screen bg-bg">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/5 bg-black/20 backdrop-blur-xl lg:block">
-        <div className="flex h-full flex-col p-6">
-          <div className="mb-10 flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary font-bold text-white">✓</div><h1 className="text-xl font-black tracking-tight text-white">TASK.IO</h1></div>
-          <nav className="flex-1 space-y-2">
-            <button className="flex w-full items-center gap-3 rounded-xl bg-primary/10 px-4 py-3 text-primary font-bold"><LayoutDashboard className="h-5 w-5" />Dashboard</button>
-            <button onClick={() => { setEditingCat(null); setIsCatModalOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-zinc-500 hover:bg-white/5 hover:text-white"><Tag className="h-5 w-5" />Categories</button>
+    <div className="flex min-h-screen bg-bg text-white selection:bg-primary selection:text-black">
+      {/* Desktop Sidebar */}
+      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-white/5 bg-[#0e0e11] lg:block">
+        <div className="flex h-full flex-col p-8">
+          <div className="mb-12 flex items-center gap-3">
+             <div className="h-8 w-8 rounded-full bg-primary" />
+             <h1 className="text-2xl font-black tracking-tighter">FLOW.</h1>
+          </div>
+          <nav className="flex-1 space-y-1">
+            <button className="flex w-full items-center gap-3 rounded-2xl bg-white/5 px-4 py-3.5 text-sm font-bold"><LayoutDashboard className="h-4 w-4" />Dashboard</button>
+            <button onClick={() => { setEditingCat(null); setIsCatModalOpen(true); }} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-zinc-500 hover:text-white transition-colors"><Tag className="h-4 w-4" />Categories</button>
           </nav>
-          <button onClick={handleLogout} className="flex items-center gap-3 rounded-xl px-4 py-3 text-zinc-500 hover:bg-rose-500/10 hover:text-rose-500"><LogOut className="h-5 w-5" />Logout</button>
+          <button onClick={handleLogout} className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-zinc-600 hover:text-rose-500 transition-colors"><LogOut className="h-4 w-4" />Sign Out</button>
         </div>
       </aside>
 
-      <nav className="fixed bottom-0 left-0 z-40 flex w-full border-t border-white/5 bg-black/40 p-4 backdrop-blur-2xl lg:hidden">
-        <div className="flex w-full justify-around items-center">
-          <button className="text-primary"><LayoutDashboard className="h-6 w-6" /></button>
-          <button onClick={() => setIsModalOpen(true)} className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white -mt-8"><Plus className="h-8 w-8" /></button>
-          <button onClick={() => setIsCatModalOpen(true)} className="text-zinc-500"><Tag className="h-6 w-6" /></button>
-          <button onClick={handleLogout} className="text-zinc-500"><LogOut className="h-6 w-6" /></button>
-        </div>
+      {/* Mobile Nav */}
+      <nav className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-3xl border border-white/10 bg-black/60 p-4 backdrop-blur-2xl lg:hidden shadow-2xl">
+          <button className="text-primary p-2"><LayoutDashboard className="h-5 w-5" /></button>
+          <button onClick={() => { setEditingCat(null); setIsCatModalOpen(true); }} className="text-zinc-500 p-2"><Tag className="h-5 w-5" /></button>
+          <button onClick={() => { setEditingTask(null); resetForm(); setIsModalOpen(true); }} className="h-12 w-12 rounded-full bg-primary text-black flex items-center justify-center"><Plus className="h-6 w-6" /></button>
+          <button className="text-zinc-500 p-2"><Bell className="h-5 w-5" /></button>
+          <button onClick={handleLogout} className="text-zinc-500 p-2"><LogOut className="h-5 w-5" /></button>
       </nav>
 
-      <main className="flex-1 lg:pl-64">
-        <div className="mx-auto max-w-5xl p-6 lg:p-10 pb-32">
-          <header className="mb-8 flex items-center justify-between">
-            <div><p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-primary lg:text-sm">Statistics</p><h2 className="text-2xl font-black text-white lg:text-4xl">Your Performance</h2></div>
-            <button onClick={() => { setEditingTask(null); resetForm(); setIsModalOpen(true); }} className="hidden lg:flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 font-bold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"><Plus className="h-5 w-5" />New Task</button>
+      <main className="flex-1 lg:pl-72">
+        <div className="mx-auto max-w-5xl p-6 lg:p-12 pb-32 lg:pb-12">
+          <header className="mb-12 flex items-center justify-between">
+            <div>
+               <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Good Day, {user.email?.split('@')[0]}</span>
+               </div>
+               <h2 className="text-4xl font-black tracking-tighter">Your Workspace</h2>
+            </div>
+            <button onClick={() => { setEditingTask(null); resetForm(); setIsModalOpen(true); }} className="hidden lg:flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-sm font-black text-black shadow-xl shadow-primary/20 transition-transform hover:scale-105 active:scale-95">
+              <Plus className="h-5 w-5" />
+              New Project
+            </button>
           </header>
 
-          {/* Charts Section */}
-          <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="rounded-[2.5rem] border border-white/5 bg-white/5 p-8 transition-all hover:bg-white/10">
-              <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white">Task Completion</h3>
-                <PieIcon className="h-5 w-5 text-zinc-500" />
-              </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '12px', color: '#fff' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 flex justify-center gap-6">
-                {pieData.map(item => (
-                  <div key={item.name} className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-xs font-bold text-zinc-400">{item.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[2.5rem] border border-white/5 bg-white/5 p-8 transition-all hover:bg-white/10">
-              <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white">Tasks by Category</h3>
-                <BarChart3 className="h-5 w-5 text-zinc-500" />
-              </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 10 }} />
-                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '12px', color: '#fff' }} />
-                    <Bar dataKey="tasks" radius={[10, 10, 10, 10]}>
-                      {barData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+          {/* Stats Section */}
+          <div className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
+             <div className="col-span-1 lg:col-span-2 rounded-[2.5rem] bg-[#141417] border border-white/[0.03] p-8 lg:p-10">
+                <div className="mb-8 flex items-center justify-between">
+                   <h3 className="text-xl font-black tracking-tight">Active Pulse</h3>
+                   <div className="flex items-center gap-2 text-xs font-bold text-zinc-500"><div className="h-2 w-2 rounded-full bg-primary animate-pulse" /> Live Stats</div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                   <div className="h-48 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                         <PieChart>
+                            <Pie data={pieData} innerRadius={60} outerRadius={80} stroke="none" dataKey="value">
+                               {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '16px', fontSize: '12px' }} />
+                         </PieChart>
+                      </ResponsiveContainer>
+                   </div>
+                   <div className="space-y-4">
+                      {pieData.map(item => (
+                        <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+                           <div className="flex items-center gap-3">
+                              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                              <span className="text-sm font-bold text-zinc-400">{item.name}</span>
+                           </div>
+                           <span className="text-lg font-black">{item.value}</span>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+             </div>
+             <div className="rounded-[2.5rem] bg-[#141417] border border-white/[0.03] p-8 lg:p-10 flex flex-col">
+                <h3 className="text-xl font-black tracking-tight mb-8">Categories</h3>
+                <div className="flex-1 min-h-[200px]">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={barData}>
+                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#3f3f46', fontSize: 10, fontWeight: 800 }} />
+                         <Bar dataKey="tasks" radius={[6, 6, 6, 6]}>
+                            {barData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                         </Bar>
+                      </BarChart>
+                   </ResponsiveContainer>
+                </div>
+             </div>
           </div>
 
-          {/* Task List Section */}
-          <div className="mb-8 flex items-center justify-between">
-            <h3 className="text-xl font-bold text-white">Task List</h3>
-            <div className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-zinc-500" />
-              <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm text-white outline-none border-b border-white/5 focus:border-primary transition-colors" />
-            </div>
-          </div>
+          {/* Task List */}
+          <div className="flex flex-col gap-6">
+             <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-black tracking-tight">Projects</h3>
+                <div className="flex items-center gap-4">
+                   <div className="relative group">
+                      <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600 group-focus-within:text-primary transition-colors" />
+                      <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-32 lg:w-64 rounded-2xl border border-white/5 bg-white/5 py-3 pl-12 pr-4 text-xs font-bold outline-none focus:border-primary/50 transition-all" />
+                   </div>
+                </div>
+             </div>
 
-          <section className="space-y-4">
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map(task => (<TaskCard key={task.id} task={task} onToggle={() => handleToggleStatus(task)} onDelete={() => handleDeleteTask(task.id)} onEdit={() => handleEditTask(task)} />))
-            ) : (
-              <div className="py-20 text-center text-zinc-600 border border-dashed border-white/5 rounded-[2rem]">Empty tasks.</div>
-            )}
-          </section>
+             <div className="grid grid-cols-1 gap-4">
+                {filteredTasks.length > 0 ? (
+                  filteredTasks.map(task => (<TaskCard key={task.id} task={task} onToggle={() => handleToggleStatus(task)} onDelete={() => handleDeleteTask(task.id)} onEdit={() => handleEditTask(task)} />))
+                ) : (
+                  <div className="py-20 text-center text-zinc-600 border border-dashed border-white/10 rounded-[2.5rem]">No projects found.</div>
+                )}
+             </div>
+          </div>
         </div>
       </main>
 
-      {/* Modals same as before (Task & Category) */}
+      {/* Modals - Signature Style */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm lg:items-center p-0 lg:p-6">
-          <form onSubmit={handleUpsertTask} className="w-full max-w-xl rounded-t-[2.5rem] lg:rounded-[2.5rem] border border-white/10 bg-zinc-900 p-8 lg:p-10 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between"><h3 className="text-2xl font-black text-white">{editingTask ? 'Edit Task' : 'New Task'}</h3><button type="button" onClick={() => setIsModalOpen(false)} className="text-zinc-500 hover:text-white"><X className="h-6 w-6" /></button></div>
-            <div className="space-y-4">
-              <input required placeholder="Task Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-white outline-none focus:border-primary/50" />
-              <textarea placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-white outline-none h-24 focus:border-primary/50 lg:h-32" />
-              <div className="grid grid-cols-2 gap-4">
-                <select value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)} className="rounded-2xl border border-white/5 bg-zinc-800 p-4 text-white"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
-                <select value={newCatId} onChange={(e) => setNewCatId(e.target.value)} className="rounded-2xl border border-white/5 bg-zinc-800 p-4 text-white"><option value="">No Category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select>
-              </div>
-              <input type="date" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-white outline-none focus:border-primary/50" />
+        <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center bg-black/80 backdrop-blur-md p-0 lg:p-6">
+          <form onSubmit={handleUpsertTask} className="w-full max-w-xl rounded-t-[3rem] lg:rounded-[3rem] bg-[#141417] border border-white/10 p-10 lg:p-12 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+               <h3 className="text-3xl font-black tracking-tighter">{editingTask ? 'Edit Project' : 'New Project'}</h3>
+               <button type="button" onClick={() => setIsModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-zinc-500 hover:text-white transition-colors"><X className="h-5 w-5" /></button>
             </div>
-            <button type="submit" className="w-full rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/20">{editingTask ? 'Update Task' : 'Create Task'}</button>
+            <div className="space-y-5">
+              <input required placeholder="Project Name" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-5 text-lg font-bold outline-none focus:border-primary/50" />
+              <textarea placeholder="Tell more about this..." value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-5 outline-none h-32 focus:border-primary/50" />
+              <div className="grid grid-cols-2 gap-4">
+                <select value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)} className="rounded-2xl border border-white/5 bg-zinc-900 p-4 font-bold"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+                <select value={newCatId} onChange={(e) => setNewCatId(e.target.value)} className="rounded-2xl border border-white/5 bg-zinc-900 p-4 font-bold"><option value="">Context</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select>
+              </div>
+              <input type="date" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 font-bold outline-none focus:border-primary/50" />
+            </div>
+            <button type="submit" className="w-full mt-8 rounded-2xl bg-primary py-5 font-black text-black shadow-xl shadow-primary/20 transition-all active:scale-95">{editingTask ? 'Apply Changes' : 'Initialize Project'}</button>
           </form>
         </div>
       )}
 
       {isCatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm lg:items-center p-0 lg:p-6">
-          <div className="w-full max-w-2xl rounded-t-[2.5rem] lg:rounded-[2.5rem] border border-white/10 bg-zinc-900 p-8 lg:p-10 shadow-2xl space-y-8">
-            <div className="flex items-center justify-between"><h3 className="text-2xl font-black text-white">{editingCat ? 'Edit Category' : 'Manage Categories'}</h3><button onClick={() => { setIsCatModalOpen(false); setEditingCat(null); }} className="text-zinc-500 hover:text-white"><X className="h-6 w-6" /></button></div>
-            <form onSubmit={handleUpsertCategory} className="flex flex-col gap-4 lg:flex-row">
-              <input required placeholder="Name" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="flex-1 rounded-2xl border border-white/5 bg-white/5 p-4 text-white" />
+        <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center bg-black/80 backdrop-blur-md p-0 lg:p-6">
+          <div className="w-full max-w-2xl rounded-t-[3rem] lg:rounded-[3rem] bg-[#141417] border border-white/10 p-10 lg:p-12 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+               <h3 className="text-3xl font-black tracking-tighter">Contexts</h3>
+               <button onClick={() => { setIsCatModalOpen(false); setEditingCat(null); }} className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-zinc-500 hover:text-white transition-colors"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleUpsertCategory} className="flex flex-col lg:flex-row gap-4 mb-8">
+              <input required placeholder="New Context..." value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="flex-1 rounded-2xl border border-white/5 bg-white/5 p-5 font-bold outline-none" />
               <div className="flex items-center gap-4">
-                <input type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="h-14 w-14 rounded-xl cursor-pointer" />
-                <button type="submit" className="flex-1 rounded-2xl bg-secondary py-4 px-8 font-black text-white lg:py-0">{editingCat ? 'Update' : 'Add'}</button>
+                <input type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="h-14 w-14 rounded-2xl cursor-pointer border-none bg-transparent" />
+                <button type="submit" className="flex-1 lg:flex-none rounded-2xl bg-white text-black py-4 px-8 font-black">{editingCat ? 'Save' : 'Add'}</button>
               </div>
             </form>
-            {!editingCat && (
-              <div className="max-h-[40vh] overflow-y-auto space-y-3">{categories.map(cat => (
-                <div key={cat.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-4">
-                  <div className="flex items-center gap-3"><div className="h-4 w-4 rounded-full" style={{ backgroundColor: cat.color }} /><span className="font-bold text-white">{cat.name}</span></div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditingCat(cat); setNewCatName(cat.name); setNewCatColor(cat.color); }} className="p-2 text-zinc-500 hover:text-white"><Edit3 className="h-5 w-5" /></button>
-                    <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-zinc-500 hover:text-rose-500"><Trash2 className="h-5 w-5" /></button>
+            <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 no-scrollbar">
+               {categories.map(cat => (
+                  <div key={cat.id} className="group flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] transition-all">
+                     <div className="flex items-center gap-4">
+                        <div className="h-4 w-4 rounded-full" style={{ backgroundColor: cat.color }} />
+                        <span className="font-bold">{cat.name}</span>
+                     </div>
+                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onClick={() => { setEditingCat(cat); setNewCatName(cat.name); setNewCatColor(cat.color); }} className="p-2 text-zinc-500 hover:text-white"><Edit3 className="h-4 w-4" /></button>
+                        <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-zinc-500 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                     </div>
                   </div>
-                </div>
-              ))}</div>
-            )}
+               ))}
+            </div>
           </div>
         </div>
       )}
