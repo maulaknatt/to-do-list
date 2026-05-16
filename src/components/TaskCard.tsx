@@ -1,13 +1,14 @@
 import { Task } from '@/types';
-import { CheckCircle2, Circle, Calendar, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, Trash2, Edit3 } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
   onToggle?: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
 
-export default function TaskCard({ task, onToggle, onDelete }: TaskCardProps) {
+export default function TaskCard({ task, onToggle, onDelete, onEdit }: TaskCardProps) {
   const isCompleted = task.status === 'completed';
 
   const priorityColors = {
@@ -60,12 +61,20 @@ export default function TaskCard({ task, onToggle, onDelete }: TaskCardProps) {
         </div>
       </div>
 
-      <button 
-        onClick={onDelete}
-        className="h-fit rounded-lg p-2 text-zinc-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-rose-500/20 hover:text-rose-500"
-      >
-        <Trash2 className="h-5 w-5" />
-      </button>
+      <div className="flex flex-col gap-2 opacity-0 transition-all group-hover:opacity-100">
+        <button 
+          onClick={onEdit}
+          className="h-fit rounded-lg p-2 text-zinc-500 hover:bg-white/10 hover:text-white"
+        >
+          <Edit3 className="h-5 w-5" />
+        </button>
+        <button 
+          onClick={onDelete}
+          className="h-fit rounded-lg p-2 text-zinc-500 hover:bg-rose-500/20 hover:text-rose-500"
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }

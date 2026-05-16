@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -60,22 +61,54 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
-  const handleCreateTask = async (e: React.FormEvent) => {
+  const handleUpsertTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle) return;
-    const { data, error } = await supabase.from('tasks').insert({
-      user_id: user.id, title: newTitle, description: newDesc, priority: newPriority,
-      category_id: newCatId ? parseInt(newCatId) : null, deadline: newDeadline || null, status: 'pending'
-    }).select(`*, categories (*)`).single();
 
-    if (!error && data) {
-      setTasks([{
-        id: data.id, title: data.title, description: data.description || '', status: data.status, priority: data.priority,
-        deadline: data.deadline, createdAt: data.created_at, category: data.categories ? { id: data.categories.id, name: data.categories.name, color: data.categories.color } : undefined
-      }, ...tasks]);
-      setIsModalOpen(false);
-      setNewTitle(''); setNewDesc(''); setNewDeadline('');
+    if (editingTask) {
+      const { data, error } = await supabase.from('tasks').update({
+        title: newTitle, description: newDesc, priority: newPriority,
+        category_id: newCatId ? parseInt(newCatId) : null, deadline: newDeadline || null
+      }).eq('id', editingTask.id).select(`*, categories (*)`).single();
+
+      if (!error && data) {
+        setTasks(tasks.map(t => t.id === editingTask.id ? {
+          ...t, title: data.title, description: data.description || '', priority: data.priority,
+          deadline: data.deadline, category: data.categories ? { id: data.categories.id, name: data.categories.name, color: data.categories.color } : undefined
+        } : t));
+        setIsModalOpen(false);
+        setEditingTask(null);
+        resetForm();
+      }
+    } else {
+      const { data, error } = await supabase.from('tasks').insert({
+        user_id: user.id, title: newTitle, description: newDesc, priority: newPriority,
+        category_id: newCatId ? parseInt(newCatId) : null, deadline: newDeadline || null, status: 'pending'
+      }).select(`*, categories (*)`).single();
+
+      if (!error && data) {
+        setTasks([{
+          id: data.id, title: data.title, description: data.description || '', status: data.status, priority: data.priority,
+          deadline: data.deadline, createdAt: data.created_at, category: data.categories ? { id: data.categories.id, name: data.categories.name, color: data.categories.color } : undefined
+        }, ...tasks]);
+        setIsModalOpen(false);
+        resetForm();
+      }
     }
+  };
+
+  const resetForm = () => {
+    setNewTitle(''); setNewDesc(''); setNewPriority('medium'); setNewCatId(''); setNewDeadline('');
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setNewTitle(task.title);
+    setNewDesc(task.description);
+    setNewPriority(task.priority);
+    setNewCatId(task.category?.id.toString() || '');
+    setNewDeadline(task.deadline || '');
+    setIsModalOpen(true);
   };
 
   const handleUpsertCategory = async (e: React.FormEvent) => {
@@ -101,7 +134,7 @@ export default function DashboardPage() {
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (confirm('Delete this category? Tasks in this category will become uncategorized.')) {
+    if (confirm('Delete category? Tasks in this category will become uncategorized.')) {
       const { error } = await supabase.from('categories').delete().eq('id', id);
       if (!error) {
         setCategories(categories.filter(c => c.id !== id));
@@ -117,7 +150,7 @@ export default function DashboardPage() {
   };
 
   const handleDeleteTask = async (id: number) => {
-    if (confirm('Are you sure you want to delete this task?')) {
+    if (confirm('Are you sure?')) {
       const { error } = await supabase.from('tasks').delete().eq('id', id);
       if (!error) setTasks(prev => prev.filter(t => t.id !== id));
     }
@@ -151,7 +184,7 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-5xl p-10">
           <header className="mb-12 flex items-end justify-between">
             <div><p className="mb-1 text-sm font-bold uppercase tracking-widest text-primary">Overview</p><h2 className="text-4xl font-black text-white">Welcome, {user.email?.split('@')[0]}</h2></div>
-            <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 font-bold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"><Plus className="h-5 w-5" />New Task</button>
+            <button onClick={() => { setEditingTask(null); resetForm(); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 font-bold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"><Plus className="h-5 w-5" />New Task</button>
           </header>
 
           <div className="mb-8 flex items-center gap-4">
@@ -163,51 +196,16 @@ export default function DashboardPage() {
           </div>
 
           <section className="space-y-4 pb-20">
-            {filteredTasks.map(task => (<TaskCard key={task.id} task={task} onToggle={() => handleToggleStatus(task)} onDelete={() => handleDeleteTask(task.id)} />))}
+            {filteredTasks.map(task => (<TaskCard key={task.id} task={task} onToggle={() => handleToggleStatus(task)} onDelete={() => handleDeleteTask(task.id)} onEdit={() => handleEditTask(task)} />))}
           </section>
         </div>
       </main>
 
-      {/* Category Management Modal */}
-      {isCatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-          <div className="w-full max-w-2xl rounded-[2.5rem] border border-white/10 bg-zinc-900 p-10 shadow-2xl space-y-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-white">{editingCat ? 'Edit Category' : 'Manage Categories'}</h3>
-              <button onClick={() => { setIsCatModalOpen(false); setEditingCat(null); }} className="text-zinc-500 hover:text-white"><X className="h-6 w-6" /></button>
-            </div>
-
-            <form onSubmit={handleUpsertCategory} className="flex gap-4">
-              <input required placeholder="Category Name" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="flex-1 rounded-2xl border border-white/5 bg-white/5 p-4 text-white" />
-              <input type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="h-14 w-14 rounded-xl bg-transparent border-none cursor-pointer" />
-              <button type="submit" className="rounded-2xl bg-secondary px-8 font-black text-white shadow-lg shadow-secondary/20">{editingCat ? 'Update' : 'Add'}</button>
-            </form>
-
-            {!editingCat && (
-              <div className="max-h-64 overflow-y-auto space-y-3 pr-2">
-                {categories.map(cat => (
-                  <div key={cat.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-4 w-4 rounded-full" style={{ backgroundColor: cat.color }} />
-                      <span className="font-bold text-white">{cat.name}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => { setEditingCat(cat); setNewCatName(cat.name); setNewCatColor(cat.color); }} className="p-2 text-zinc-500 hover:text-white"><Edit3 className="h-5 w-5" /></button>
-                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-zinc-500 hover:text-rose-500"><Trash2 className="h-5 w-5" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Task Modal (Simplified for space) */}
+      {/* Task Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-          <form onSubmit={handleCreateTask} className="w-full max-w-xl rounded-[2.5rem] border border-white/10 bg-zinc-900 p-10 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between"><h3 className="text-2xl font-black text-white">Create New Task</h3><button type="button" onClick={() => setIsModalOpen(false)} className="text-zinc-500 hover:text-white"><X className="h-6 w-6" /></button></div>
+          <form onSubmit={handleUpsertTask} className="w-full max-w-xl rounded-[2.5rem] border border-white/10 bg-zinc-900 p-10 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between"><h3 className="text-2xl font-black text-white">{editingTask ? 'Edit Task' : 'New Task'}</h3><button type="button" onClick={() => setIsModalOpen(false)} className="text-zinc-500 hover:text-white"><X className="h-6 w-6" /></button></div>
             <div className="space-y-4">
               <input required placeholder="Task Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-white outline-none focus:border-primary/50" />
               <textarea placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-white outline-none h-24 focus:border-primary/50" />
@@ -215,9 +213,35 @@ export default function DashboardPage() {
                 <select value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)} className="rounded-2xl border border-white/5 bg-zinc-800 p-4 text-white"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
                 <select value={newCatId} onChange={(e) => setNewCatId(e.target.value)} className="rounded-2xl border border-white/5 bg-zinc-800 p-4 text-white"><option value="">No Category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select>
               </div>
+              <input type="date" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-white outline-none focus:border-primary/50" />
             </div>
-            <button type="submit" className="w-full rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/20">Create Task</button>
+            <button type="submit" className="w-full rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/20">{editingTask ? 'Update Task' : 'Create Task'}</button>
           </form>
+        </div>
+      )}
+
+      {/* Category Modal (Same as before) */}
+      {isCatModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+          <div className="w-full max-w-2xl rounded-[2.5rem] border border-white/10 bg-zinc-900 p-10 shadow-2xl space-y-8">
+            <div className="flex items-center justify-between"><h3 className="text-2xl font-black text-white">{editingCat ? 'Edit Category' : 'Manage Categories'}</h3><button onClick={() => { setIsCatModalOpen(false); setEditingCat(null); }} className="text-zinc-500 hover:text-white"><X className="h-6 w-6" /></button></div>
+            <form onSubmit={handleUpsertCategory} className="flex gap-4">
+              <input required placeholder="Name" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="flex-1 rounded-2xl border border-white/5 bg-white/5 p-4 text-white" />
+              <input type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="h-14 w-14 rounded-xl cursor-pointer" />
+              <button type="submit" className="rounded-2xl bg-secondary px-8 font-black text-white">{editingCat ? 'Update' : 'Add'}</button>
+            </form>
+            {!editingCat && (
+              <div className="max-h-64 overflow-y-auto space-y-3">{categories.map(cat => (
+                <div key={cat.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-4">
+                  <div className="flex items-center gap-3"><div className="h-4 w-4 rounded-full" style={{ backgroundColor: cat.color }} /><span className="font-bold text-white">{cat.name}</span></div>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setEditingCat(cat); setNewCatName(cat.name); setNewCatColor(cat.color); }} className="p-2 text-zinc-500 hover:text-white"><Edit3 className="h-5 w-5" /></button>
+                    <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-zinc-500 hover:text-rose-500"><Trash2 className="h-5 w-5" /></button>
+                  </div>
+                </div>
+              ))}</div>
+            )}
+          </div>
         </div>
       )}
     </div>
